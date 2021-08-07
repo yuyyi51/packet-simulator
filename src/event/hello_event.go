@@ -20,7 +20,7 @@ func NewHelloEvent(e core.EventI, helloTime int) *HelloEvent {
 }
 
 func (event *HelloEvent) Trigger() {
-	log.Infof("Hello triggered, helloTime %d", event.helloTime)
+	log.Infof("Hello triggered, helloTime %d, timeOffset %s", event.helloTime, event.GetOwner().GetCurrentTimeOffset())
 	if event.helloTime == 0 {
 		log.Infof("Hello exit!")
 		return
