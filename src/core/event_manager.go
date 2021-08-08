@@ -73,7 +73,5 @@ func (m *EventManager) SetWaiter(w TimeWaiter) {
 }
 
 func (m *EventManager) waitUntil(t time.Time) time.Time {
-	timer := time.NewTimer(t.Sub(time.Now()))
-	newTime := <-timer.C
-	return newTime
+	return t
 }

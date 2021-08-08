@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	manager := core.NewSimulateEventManager(time.Now())
+	manager := core.NewEventManager(time.Now())
 	e := manager.CreateEvent(time.Now().Add(time.Second * 10))
 	helloEvent := event.NewHelloEvent(e, 10)
 	err := manager.AddEvent(helloEvent)
