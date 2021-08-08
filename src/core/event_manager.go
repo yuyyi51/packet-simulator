@@ -3,6 +3,8 @@ package core
 import (
 	"errors"
 	"time"
+
+	"github.com/yuyyi51/packet-simulator/src/log"
 )
 
 type EventManagerI interface {
@@ -52,6 +54,7 @@ func (m *EventManager) Run() {
 		event := m.queue.PopEvent()
 		newTime := m.waiter.waitUntil(event.GetTriggerTime())
 		m.setCurrentTime(newTime)
+		log.Debugf("EventManager running event %#v", event)
 		event.Trigger()
 	}
 }
