@@ -1,9 +1,9 @@
 package simulate
 
 import (
+	"fmt"
 	"net"
-
-	"github.com/yuyyi51/packet-simulator/src/log"
+	"time"
 )
 
 type ApplicationBaseI interface {
@@ -11,6 +11,10 @@ type ApplicationBaseI interface {
 	SetSendConn(sender PacketSender)
 	Port() int
 	Addr() net.Addr
+	Now() time.Time
+	CreateTimer(interval time.Duration, cb func()) *Timer
+
+	GetManager() SimulateManagerI
 }
 
 type ApplicationI interface {
@@ -46,11 +50,23 @@ func (app *ApplicationBase) Port() int {
 	return app.port
 }
 
+func (app *ApplicationBase) Now() time.Time {
+	return app.manager.GetCurrentTime()
+}
+
 func (app *ApplicationBase) Addr() net.Addr {
 	if app.address == nil {
 		app.address = NewAddr(app.sendConn.Addr(), app.port)
 	}
 	return app.address
+}
+
+func (app *ApplicationBase) CreateTimer(interval time.Duration, cb func()) *Timer {
+	return app.manager.CreateTimer(interval, cb)
+}
+
+func (app *ApplicationBase) GetManager() SimulateManagerI {
+	return app.manager
 }
 
 type HelloApplication struct {
@@ -67,15 +83,18 @@ func NewHelloApplication(base ApplicationBaseI, maxHelloTime int) *HelloApplicat
 
 func (app *HelloApplication) ReceivePacket(pkt PacketI) {
 	if app.maxHelloTime > 0 {
-		log.Debugf("ReceivePacket, maxHelloTime %d", app.maxHelloTime)
+		fmt.Printf("%s\n", app)
+		fmt.Printf("%s\n", app.GetManager())
+		fmt.Printf("%s\n", app.GetManager().GetLogger())
+		app.GetManager().GetLogger().Debugf("ReceivePacket, maxHelloTime %d", app.maxHelloTime)
 		app.maxHelloTime--
-		echo := &Packet{length: 1000, targetAddr: pkt.GetSourceAddr(), sourceAddr: app.Addr()}
+		echo := &HelloPacket{length: 1000, PacketBase: &PacketBase{TargetAddr: pkt.GetSourceAddr(), SourceAddr: app.Addr()}}
 		app.SendPacket(echo)
 		return
 	}
 }
 
 func (app *HelloApplication) Start(addr net.Addr) {
-	echo := &Packet{length: 1000, targetAddr: addr, sourceAddr: app.Addr()}
+	echo := &HelloPacket{length: 1000, PacketBase: &PacketBase{TargetAddr: addr, SourceAddr: app.Addr()}}
 	app.SendPacket(echo)
 }

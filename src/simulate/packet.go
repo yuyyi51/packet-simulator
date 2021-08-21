@@ -8,29 +8,28 @@ type PacketI interface {
 	GetSourceAddr() net.Addr
 }
 
-type PacketType int
-
-const (
-	PacketTypePayload = iota
-	PacketTypeAck
-)
-
-type Packet struct {
-	packetType PacketType
-	seq        int64
-	length     int64
-	sourceAddr net.Addr
-	targetAddr net.Addr
+type PacketBase struct {
+	SourceAddr net.Addr
+	TargetAddr net.Addr
 }
 
-func (pkt *Packet) GetLength() int64 {
+func (pkt *PacketBase) GetLength() int64 {
+	panic("PacketBase shouldn't call GetLength")
+}
+
+func (pkt *PacketBase) GetTargetAddr() net.Addr {
+	return pkt.TargetAddr
+}
+
+func (pkt *PacketBase) GetSourceAddr() net.Addr {
+	return pkt.SourceAddr
+}
+
+type HelloPacket struct {
+	*PacketBase
+	length int64
+}
+
+func (pkt *HelloPacket) GetLength() int64 {
 	return pkt.length
-}
-
-func (pkt *Packet) GetTargetAddr() net.Addr {
-	return pkt.targetAddr
-}
-
-func (pkt *Packet) GetSourceAddr() net.Addr {
-	return pkt.sourceAddr
 }

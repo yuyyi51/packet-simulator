@@ -39,3 +39,19 @@ func (event *PacketProcessEvent) Trigger() {
 	event.router.SendPacket(event.pkt)
 	event.router.processNextPacket()
 }
+
+type TimerEvent struct {
+	core.EventI
+	t *Timer
+}
+
+func NewTimerEvent(e core.EventI, t *Timer) *TimerEvent {
+	return &TimerEvent{
+		EventI: e,
+		t:      t,
+	}
+}
+
+func (event *TimerEvent) Trigger() {
+	event.t.onFire()
+}

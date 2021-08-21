@@ -11,6 +11,8 @@ type SimulateManagerI interface {
 	AddEvent(event core.EventI) error
 	GetCurrentTime() time.Time
 	GetCurrentTimeOffset() time.Duration
+	CreateTimer(interval time.Duration, cb func()) *Timer
+	GetLogger() *core.Logger
 }
 
 type SimulateManager struct {
@@ -18,7 +20,10 @@ type SimulateManager struct {
 }
 
 func NewSimulateManager() *SimulateManager {
-	return &SimulateManager{eventManager: core.NewEventManager(time.Now())}
+	m := &SimulateManager{
+		eventManager: core.NewEventManager(time.Now()),
+	}
+	return m
 }
 
 func (s *SimulateManager) CreateEvent(time time.Time) core.EventI {
@@ -35,6 +40,10 @@ func (s *SimulateManager) GetCurrentTime() time.Time {
 
 func (s *SimulateManager) GetCurrentTimeOffset() time.Duration {
 	return s.eventManager.GetCurrentTimeOffset()
+}
+
+func (s *SimulateManager) GetLogger() *core.Logger {
+	return s.eventManager.GetLogger()
 }
 
 func (s *SimulateManager) Run() {
@@ -70,4 +79,10 @@ func (s *SimulateManager) CreateApplicationBase(port int) *ApplicationBase {
 	app := NewApplicationBase(port)
 	app.manager = s
 	return app
+}
+
+func (s *SimulateManager) CreateTimer(interval time.Duration, cb func()) *Timer {
+	t := NewTimer(interval, cb)
+	t.manager = s
+	return t
 }

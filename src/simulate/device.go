@@ -1,8 +1,6 @@
 package simulate
 
 import (
-	"github.com/yuyyi51/packet-simulator/src/log"
-
 	"github.com/yuyyi51/packet-simulator/src/utils"
 )
 
@@ -35,7 +33,7 @@ func (d *Device) ReceivePacket(pkt PacketI) {
 	port := utils.ParsePort(pkt.GetTargetAddr().String())
 	app, ok := d.appMap[port]
 	if !ok {
-		log.Errorf("Device ReceivePacket not found application, %s, %v", pkt.GetTargetAddr(), d.appMap)
+		d.manager.GetLogger().Errorf("Device ReceivePacket not found application, %s, %v", pkt.GetTargetAddr(), d.appMap)
 		return
 	}
 	app.ReceivePacket(pkt)

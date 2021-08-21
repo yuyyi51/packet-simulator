@@ -1,6 +1,9 @@
 package main
 
-import "github.com/yuyyi51/packet-simulator/src/simulate"
+import (
+	"github.com/yuyyi51/packet-simulator/src/example/simple_packet"
+	"github.com/yuyyi51/packet-simulator/src/simulate"
+)
 
 func main() {
 	manager := simulate.NewSimulateManager()
@@ -20,14 +23,16 @@ func main() {
 	_ = l2
 
 	ab1 := manager.CreateApplicationBase(1440)
-	app1 := simulate.NewHelloApplication(ab1, 10)
+	app1 := simple_packet.NewApplication(ab1, 10, simulate.NewAddr("10.0.0.1", 1440))
 	d1.RunApplication(app1)
 
 	ab2 := manager.CreateApplicationBase(1440)
-	app2 := simulate.NewHelloApplication(ab2, 10)
+	app2 := simple_packet.NewApplication(ab2, 10, simulate.NewAddr("10.0.0.0", 1440))
 	d2.RunApplication(app2)
 
-	app1.Start(simulate.NewAddr("10.0.0.1", 1440))
-
+	//app1.Start(simulate.NewAddr("10.0.0.1", 1440))
+	app1.Start()
+	app1.Write(40 * 1024)
+	app2.Start()
 	manager.Run()
 }

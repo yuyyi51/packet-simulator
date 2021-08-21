@@ -2,9 +2,8 @@ package core
 
 import (
 	"errors"
+	"os"
 	"time"
-
-	"github.com/yuyyi51/packet-simulator/src/log"
 )
 
 type EventManagerI interface {
@@ -13,6 +12,7 @@ type EventManagerI interface {
 	Run()
 	GetCurrentTime() time.Time
 	GetCurrentTimeOffset() time.Duration
+	GetLogger() *Logger
 }
 
 type TimeWaiter interface {
@@ -24,6 +24,7 @@ type EventManager struct {
 	waiter      TimeWaiter
 	currentTime time.Time
 	startTime   time.Time
+	logger      *Logger
 }
 
 func NewEventManager(startTime time.Time) *EventManager {
@@ -32,6 +33,7 @@ func NewEventManager(startTime time.Time) *EventManager {
 		currentTime: startTime,
 		startTime:   startTime,
 	}
+	m.logger = NewLogger(m, os.Stdout, LogLevelDebug)
 	m.waiter = m
 	return m
 }
@@ -54,7 +56,7 @@ func (m *EventManager) Run() {
 		event := m.queue.PopEvent()
 		newTime := m.waiter.waitUntil(event.GetTriggerTime())
 		m.setCurrentTime(newTime)
-		log.Debugf("EventManager running event %#v", event)
+		//m.logger.Debugf("EventManager running event %#v", event)
 		event.Trigger()
 	}
 }
@@ -69,6 +71,10 @@ func (m *EventManager) GetCurrentTime() time.Time {
 
 func (m *EventManager) GetCurrentTimeOffset() time.Duration {
 	return m.currentTime.Sub(m.startTime)
+}
+
+func (m *EventManager) GetLogger() *Logger {
+	return m.logger
 }
 
 func (m *EventManager) SetWaiter(w TimeWaiter) {

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/yuyyi51/packet-simulator/src/core"
-	"github.com/yuyyi51/packet-simulator/src/log"
 )
 
 type HelloEvent struct {
@@ -20,9 +19,9 @@ func NewHelloEvent(e core.EventI, helloTime int) *HelloEvent {
 }
 
 func (event *HelloEvent) Trigger() {
-	log.Infof("Hello triggered, helloTime %d, timeOffset %s", event.helloTime, event.GetOwner().GetCurrentTimeOffset())
+	event.GetOwner().GetLogger().Infof("Hello triggered, helloTime %d, timeOffset %s", event.helloTime, event.GetOwner().GetCurrentTimeOffset())
 	if event.helloTime == 0 {
-		log.Infof("Hello exit!")
+		event.GetOwner().GetLogger().Infof("Hello exit!")
 		return
 	}
 	newEvent := event.GetOwner().CreateEvent(event.GetTriggerTime().Add(time.Second))
@@ -32,6 +31,6 @@ func (event *HelloEvent) Trigger() {
 	}
 	err := event.GetOwner().AddEvent(newHelloEvent)
 	if err != nil {
-		log.Errorf("HelloEvent add new event fail %v", err)
+		event.GetOwner().GetLogger().Errorf("HelloEvent add new event fail %v", err)
 	}
 }

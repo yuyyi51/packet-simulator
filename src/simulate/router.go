@@ -3,8 +3,6 @@ package simulate
 import (
 	"time"
 
-	"github.com/yuyyi51/packet-simulator/src/log"
-
 	"github.com/yuyyi51/packet-simulator/src/utils"
 )
 
@@ -47,7 +45,7 @@ func (r *Router) SendPacket(pkt PacketI) {
 	addr := utils.ParseAddr(pkt.GetTargetAddr().String())
 	l, ok := r.linkMap[addr]
 	if !ok {
-		log.Errorf("Router send packet not found target addr, %s, %v", pkt.GetTargetAddr().String(), r.linkMap)
+		r.manager.GetLogger().Errorf("Router send packet not found target addr, %s, %v", pkt.GetTargetAddr().String(), r.linkMap)
 		return
 	}
 	l.TransportPacket(r, pkt)
@@ -73,7 +71,7 @@ func (r *Router) processPacket(pkt PacketI) {
 func (r *Router) processNextPacket() {
 	if len(r.pktQueue) != 0 {
 		pkt := r.pktQueue[0]
-		r.pktQueue = r.pktQueue[:1]
+		r.pktQueue = r.pktQueue[1:]
 		r.processPacket(pkt)
 	} else {
 		r.isProcessing = false

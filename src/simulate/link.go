@@ -2,8 +2,6 @@ package simulate
 
 import (
 	"time"
-
-	"github.com/yuyyi51/packet-simulator/src/log"
 )
 
 type LinkI interface {
@@ -50,5 +48,5 @@ func (l *Link) TransportPacket(source DeviceI, pkt PacketI) {
 		return
 	}
 	// error
-	log.Errorf("source not match link, \nsource: %v\n, peer1: %v\n, peer2: %v\n", source, l.peer1, l.peer2)
+	l.manager.GetLogger().Errorf("source not match link, \nsource: %v\n, peer1: %v\n, peer2: %v\n", source, l.peer1, l.peer2)
 }
