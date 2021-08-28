@@ -1,15 +1,19 @@
 package simple_packet
 
+import "time"
+
 type SentPacketHandler struct {
 	packets     map[int64]*SimplePacket
 	nextSeq     int64
 	lostPackets []*SimplePacket
+	rttStats    *RttStats
 }
 
 func NewSentPacketHandler() *SentPacketHandler {
 	return &SentPacketHandler{
-		packets: make(map[int64]*SimplePacket),
-		nextSeq: 1,
+		packets:  make(map[int64]*SimplePacket),
+		nextSeq:  1,
+		rttStats: NewRttStats(),
 	}
 }
 
@@ -19,16 +23,26 @@ func (h *SentPacketHandler) getNextSeq() int64 {
 	return s
 }
 
-func (h *SentPacketHandler) onSentPacket(pkt *SimplePacket) {
+func (h *SentPacketHandler) onSentPacket(pkt *SimplePacket, current time.Time) {
 	_, ok := h.packets[pkt.Seq]
 	if ok {
 		return
 	}
+	pkt.sentTime = current
 	h.packets[pkt.Seq] = pkt
 }
 
-func (h *SentPacketHandler) onAckPacket(seq int64) {
+func (h *SentPacketHandler) onAckPacket(seq int64, current time.Time, needUpdateRtt bool) bool {
+	pkt, ok := h.packets[seq]
+	if !ok {
+		return false
+	}
+	if needUpdateRtt {
+		rtt := current.Sub(pkt.sentTime)
+		h.rttStats.NewRtt(rtt)
+	}
 	delete(h.packets, seq)
+	return needUpdateRtt
 }
 
 func (h *SentPacketHandler) onLostPacket(seq int64) {

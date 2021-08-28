@@ -39,6 +39,10 @@ func NewSession(app *Application, conv int64, remoteAddr net.Addr) *Session {
 	}
 }
 
+func (sess *Session) String() string {
+	return fmt.Sprintf("Session [%08x]", sess.conv)
+}
+
 func (sess *Session) Start() {
 	sess.timer = sess.app.CreateTimer(10*time.Millisecond, func() {
 		sess.run()
@@ -48,7 +52,7 @@ func (sess *Session) Start() {
 }
 
 func (sess *Session) onPacketReceive(pkt *SimplePacket) {
-	sess.logger.Debugf("Session[%08x] received packet [%d]", sess.conv, pkt.Seq)
+	sess.logger.Debugf("%s received %s", sess, pkt)
 	sess.lastIdleTime = sess.app.Now()
 	sess.receivePacketHandler.onPacketReceive(pkt)
 	content := pkt.Content
@@ -89,11 +93,12 @@ func (sess *Session) sendAckPacket() {
 		return
 	}
 	pkt := sess.createPacket(SimplePacketTypeAck, &SimplePacketContentAck{Ranges: r})
-	sess.sentPacketHandler.onSentPacket(pkt)
-	sess.app.SendPacket(pkt)
+	sess.receivePacketHandler.needAck = false
+	sess.sendPacket(pkt)
 }
 
 func (sess *Session) run() {
+	//sess.logger.Infof("%s run", sess)
 	if sess.app.Now().Sub(sess.lastIdleTime) > 10*time.Second {
 		// need close
 		sess.sendClosePacket()
@@ -105,15 +110,16 @@ func (sess *Session) run() {
 
 func (sess *Session) sendClosePacket() {
 	pkt := sess.createPacket(SimplePacketTypeClose, &SimplePacketContentClose{})
-	sess.sentPacketHandler.onSentPacket(pkt)
-	sess.app.SendPacket(pkt)
+	sess.sendPacket(pkt)
 }
 
 func (sess *Session) sendPackets() {
 	if sess.closed {
 		return
 	}
-	sess.sendAckPacket()
+	if sess.receivePacketHandler.needSendAck() {
+		sess.sendAckPacket()
+	}
 	var cwnd int64 = 10 * 1400
 	var mtu int64 = 1452 - SimplePacketDataOverhead
 	for cwnd > 0 {
@@ -123,14 +129,19 @@ func (sess *Session) sendPackets() {
 		}
 		cwnd -= data.Size
 		pkt := sess.createPacket(SimplePacketTypeData, data)
-		sess.sentPacketHandler.onSentPacket(pkt)
-		sess.logger.Infof("Session[%08x] send packet [%d]", sess.conv, pkt.Seq)
-		sess.app.SendPacket(pkt)
+		//sess.logger.Infof("Session[%08x] send packet [%d]", sess.conv, pkt.Seq)
+		sess.sendPacket(pkt)
 		if !more {
 			break
 		}
 	}
 	sess.timer.Start()
+}
+
+func (sess *Session) sendPacket(pkt *SimplePacket) {
+	sess.logger.Infof("%s send %s", sess, pkt)
+	sess.sentPacketHandler.onSentPacket(pkt, sess.app.Now())
+	sess.app.SendPacket(pkt)
 }
 
 func (sess *Session) createDataContent(maxBytes int64) (*SimplePacketContentData, bool /* more data */) {
@@ -151,7 +162,7 @@ func (sess *Session) createDataContent(maxBytes int64) (*SimplePacketContentData
 }
 
 func (sess *Session) onReceiveData(content *SimplePacketContentData) {
-	sess.logger.Infof("Session[%08x] received data, offset %d, size %d", sess.conv, content.Offset, content.Size)
+	//sess.logger.Infof("Session[%08x] received data, offset %d, size %d", sess.conv, content.Offset, content.Size)
 	sess.receiveSorter.onReceiveData(content.Offset, content.Size)
 	for sess.receiveSorter.hasData() {
 		sess.receiveSorter.readData()
@@ -159,9 +170,12 @@ func (sess *Session) onReceiveData(content *SimplePacketContentData) {
 }
 
 func (sess *Session) onReceiveAck(content *SimplePacketContentAck) {
-	for _, r := range content.Ranges {
-		for i := r.left; i <= r.right; i++ {
-			sess.sentPacketHandler.onAckPacket(i)
+	for i, r := range content.Ranges {
+		for j := r.left; j <= r.right; j++ {
+			updated := sess.sentPacketHandler.onAckPacket(j, sess.app.Now(), j == r.right && i == len(content.Ranges)-1)
+			if updated {
+				sess.logger.Debugf("new rtt %s, latest rtt %s", sess.sentPacketHandler.rttStats.smoothedRtt, sess.sentPacketHandler.rttStats.latestRtt)
+			}
 		}
 	}
 }

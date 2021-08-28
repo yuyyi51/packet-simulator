@@ -4,6 +4,7 @@ type ReceivePacketHandler struct {
 	packets        map[int64]struct{}
 	smallestTrack  int64
 	largestReceive int64
+	needAck        bool
 }
 
 func NewReceivePacketHandler() *ReceivePacketHandler {
@@ -21,6 +22,9 @@ func (h *ReceivePacketHandler) onPacketReceive(pkt *SimplePacket) {
 	h.packets[pkt.Seq] = struct{}{}
 	if h.largestReceive < pkt.Seq {
 		h.largestReceive = pkt.Seq
+	}
+	if pkt.AckEliciting() {
+		h.needAck = true
 	}
 }
 
@@ -51,5 +55,12 @@ func (h *ReceivePacketHandler) generateAckRanges() (ret []AckRange) {
 			}
 		}
 	}
+	if !lackLeft {
+		ret = append(ret, AckRange{left: left, right: h.largestReceive})
+	}
 	return
+}
+
+func (h *ReceivePacketHandler) needSendAck() bool {
+	return h.needAck
 }

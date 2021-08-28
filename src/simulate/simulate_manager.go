@@ -1,6 +1,7 @@
 package simulate
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/yuyyi51/packet-simulator/src/core"
@@ -13,15 +14,19 @@ type SimulateManagerI interface {
 	GetCurrentTimeOffset() time.Duration
 	CreateTimer(interval time.Duration, cb func()) *Timer
 	GetLogger() *core.Logger
+	GetRand() *rand.Rand
 }
 
 type SimulateManager struct {
 	eventManager core.EventManagerI
+	seed         int64
+	rand         *rand.Rand
 }
 
 func NewSimulateManager() *SimulateManager {
 	m := &SimulateManager{
 		eventManager: core.NewEventManager(time.Now()),
+		seed:         time.Now().UnixNano(),
 	}
 	return m
 }
@@ -44,6 +49,14 @@ func (s *SimulateManager) GetCurrentTimeOffset() time.Duration {
 
 func (s *SimulateManager) GetLogger() *core.Logger {
 	return s.eventManager.GetLogger()
+}
+
+func (s *SimulateManager) GetRand() *rand.Rand {
+	if s.rand == nil {
+		source := rand.NewSource(s.seed)
+		s.rand = rand.New(source)
+	}
+	return s.rand
 }
 
 func (s *SimulateManager) Run() {

@@ -2,6 +2,8 @@ package simulate
 
 import (
 	"time"
+
+	"github.com/yuyyi51/packet-simulator/src/utils"
 )
 
 type LinkI interface {
@@ -15,6 +17,8 @@ type Link struct {
 	peer2   DeviceI
 
 	delay time.Duration
+
+	lossRate utils.Fraction
 }
 
 func NewLink(peer1 DeviceI, peer2 DeviceI) *Link {
@@ -34,6 +38,10 @@ func (l *Link) RemoteAddr(peer DeviceI) string {
 }
 
 func (l *Link) TransportPacket(source DeviceI, pkt PacketI) {
+	if l.lossRate.Rand(l.manager.GetRand()) {
+		// packet loss
+		return
+	}
 	if source == l.peer1 {
 		// send packet to peer2
 		e := l.manager.CreateEvent(l.manager.GetCurrentTime().Add(l.delay))
@@ -49,4 +57,8 @@ func (l *Link) TransportPacket(source DeviceI, pkt PacketI) {
 	}
 	// error
 	l.manager.GetLogger().Errorf("source not match link, \nsource: %v\n, peer1: %v\n, peer2: %v\n", source, l.peer1, l.peer2)
+}
+
+func (l *Link) SetLoss(f utils.Fraction) {
+	l.lossRate = f
 }
